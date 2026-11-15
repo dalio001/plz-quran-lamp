@@ -21,6 +21,9 @@
 - [x] **Read queries** on the real lamp (model, volume, times, switches, method, lists).
 - [x] **Writes** verified: volume, 92 times, 94 master on, mask 3D.
 - [x] **Power behaviour:** remote power-off = Bluetooth off; app cannot wake it (tested 2026-11-15).
+- [x] **Mode rule (2026-11-15):** BLE control works in any mode, but Quran/books only play in MP3 (card) mode (0x0A);
+  in Bluetooth-speaker mode play commands do nothing. "Play from here" now switches to MP3 and retries.
+- [x] **Removed "Switch off at a time" (0x3E)** from the app: owner wants the lamp on for every azan incl. Fajr.
 ---
 ## What is Left to Do `[ ]`
 - [ ] **Verify on lamp from the web app:** lists, surah+verse, light, sleep timer, place (TZ index).

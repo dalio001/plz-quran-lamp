@@ -105,6 +105,8 @@
       <li>Switch on the <b>ON/OFF</b> switch on the back of the lamp.</li>
       <li>Press the red <b>power</b> button on the remote.</li>
       <li>Close the Koran Player app, then press <b>Connect</b> here.</li>
+      <li>For Quran, books and translations the lamp must be in <b>MP3 (card)</b> mode, not Bluetooth mode:
+        press <b>MP3 (card)</b> in Buttons.</li>
     </ol>
     <p class="note"><b>Best: keep the lamp always on and plugged in.</b> To make it quiet, use Pause and "Light on/off"
       instead of the red power button. When it is off, its Bluetooth is off too and only the remote can wake it.</p>
@@ -262,14 +264,6 @@
       <div class="status" id="sleepLeft"></div>
     </div>
 
-    <div class="card">
-      <h2>Switch off at a time</h2>
-      <div class="row">
-        <input type="time" id="offAt" value="23:00">
-        <label class="row" style="font-size:14px"><input type="checkbox" id="offDaily" checked> every day</label>
-        <button class="primary" id="offGo">Save</button>
-      </div>
-    </div>
 
     <div class="card">
       <h2>Lamp</h2>
@@ -671,9 +665,15 @@ function showTab(name) {
 $("connectBtn").onclick = () => (writeChar && device ? device.gatt.disconnect() : connect());
 $("goVerse").onclick = async () => {
   const s = +$("surah").value, v = Math.min(Math.max(1, +$("verse").value || 1), VERSES[s]) - 1;
-  const r = await send(0x15, [s, v >> 8, v & 0xFF]);
+  let r = await send(0x15, [s, v >> 8, v & 0xFF]);
+  if (!r || r[2] !== 0) {
+    // Quran only plays in MP3 (card) mode; switch to it and try once more.
+    await send(0x0A, [], { reply: false });
+    await new Promise((ok) => setTimeout(ok, 1500));
+    r = await send(0x15, [s, v >> 8, v & 0xFF]);
+  }
   if (r && r[2] === 0) { S.surah = s; S.verse = v; S.playing = true; renderNow(); toast("Playing " + SURAHS[s]); }
-  else toast(r ? "Lamp refused (switch it on / MP3 mode)" : "No answer from lamp");
+  else toast(r ? "Lamp refused. Press MP3 (card), then try again." : "No answer from lamp");
 };
 $("volume").oninput = (e) => ($("volVal").textContent = e.target.value);
 $("volume").onchange = (e) => sendOk(0x42, [+e.target.value], "Volume " + e.target.value);
@@ -696,11 +696,6 @@ $("rgb").oninput = (() => { let last = 0; return (e) => {
 $("swatches").onclick = (e) => { const m = e.target.dataset && e.target.dataset.mode;
   if (m) send(0x1D, [+$("bright").value, +m], { reply: false }); };
 $("sleepGo").onclick = () => sleepTimer(+$("sleepMin").value);
-$("offGo").onclick = () => {
-  const [h, m] = $("offAt").value.split(":").map(Number), min = h * 60 + m;
-  if (!min) { toast("Pick a time"); return; }
-  sendOk(0x3E, [min >> 8, min & 0xFF, $("offDaily").checked ? 1 : 0], "Switch-off time saved");
-};
 $("syncClock").onclick = () => syncClock();
 $("reload").onclick = loadAll;
 $("factory").onclick = async () => {
