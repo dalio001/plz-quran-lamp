@@ -272,8 +272,10 @@
         <button id="reload">Reload from lamp</button>
       </div>
       <div class="row" style="margin-top:10px">
+        <button class="warn" id="powerOff">Switch lamp off</button>
         <button class="warn" id="factory">Factory reset azan settings</button>
       </div>
+      <p class="note">After "Switch lamp off" only the remote's red button wakes it (its Bluetooth sleeps too).</p>
       <p class="note" id="model"></p>
     </div>
   </section>
@@ -485,7 +487,7 @@ function renderNow() {
     $("posTitle").textContent = `${S.surah + 1}. ${SURAHS[S.surah] || ""}`;
     $("posSub").textContent = `Verse ${S.verse + 1} of ${VERSES[S.surah] || "?"}`;
   } else if (writeChar) { $("posTitle").textContent = "Quran"; $("posSub").textContent = "Pick a surah below or press play"; }
-  if (S.playing === "off") $("posSub").textContent = "Lamp is off (standby). Press Power on/off.";
+  if (S.playing === "off") $("posSub").textContent = "Lamp is off (standby). Wake it with the remote's red button.";
   $("playBtn").textContent = S.playing === true ? "⏸ Pause" : "▶ Play";
   if (S.volume != null) { $("volume").value = S.volume; $("volVal").textContent = S.volume; }
 }
@@ -697,6 +699,10 @@ $("swatches").onclick = (e) => { const m = e.target.dataset && e.target.dataset.
   if (m) send(0x1D, [+$("bright").value, +m], { reply: false }); };
 $("sleepGo").onclick = () => sleepTimer(+$("sleepMin").value);
 $("syncClock").onclick = () => syncClock();
+$("powerOff").onclick = () => {
+  if (!confirm("Switch the lamp off? Only the remote's red button can switch it on again.")) return;
+  send(0x01, [], { reply: false }); toast("Lamp switched off");
+};
 $("reload").onclick = loadAll;
 $("factory").onclick = async () => {
   if (!confirm("Reset azan settings (method, summer time, volume…) to factory values?")) return;
