@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f7a55">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>PLZ Quran Lamp</title>
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #ffffff; --ink: #1f2a24; --muted: #6b7a71;
+    --line: #e2ddd2; --accent: #1f7a55; --accent-ink: #ffffff; --warn: #b4531c; --soft: #e8f2ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121815; --card: #1b231f; --ink: #e9efe9; --muted: #93a39a;
+      --line: #2c3731; --accent: #3fae80; --accent-ink: #0d1411; --warn: #e58b55; --soft: #1f3129;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 96px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+  h1 { font-size: 21px; margin: 0; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .status { font-size: 13px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  button, select, input[type=number], input[type=time], input[type=text] {
+    font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 12px; min-height: 44px;
+  }
+  input[type=number], input[type=text] { width: 100%; }
+  button { cursor: pointer; }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.on { background: var(--soft); border-color: var(--accent); font-weight: 600; }
+  button:disabled, select:disabled, input:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .grow { flex: 1; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .keys button { padding: 10px 4px; font-size: 14px; min-height: 52px; }
+  .big { font-size: 20px; }
+  .now { text-align: center; padding: 6px 0 14px; }
+  .now .title { font-size: 22px; font-weight: 650; }
+  .now .sub { color: var(--muted); font-size: 14px; }
+  .list { display: grid; gap: 8px; }
+  .item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; }
+  .item.cur { background: var(--soft); border-color: var(--accent); font-weight: 600; }
+  .item small { color: var(--muted); font-weight: 400; }
+  .prayer { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .prayer:first-of-type { border-top: 0; }
+  .pname { font-weight: 600; }
+  .pname small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .ptime { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 650; text-align: right; }
+  .calc { font-size: 12px; color: var(--muted); }
+  .calc.off { color: var(--warn); }
+  .controls { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .controls button { min-width: 44px; padding: 8px 10px; }
+  .controls select { flex: 1; min-width: 130px; }
+  .switch { position: relative; width: 52px; height: 30px; flex: none; }
+  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; position: absolute; z-index: 1; }
+  .switch span { position: absolute; inset: 0; background: var(--line); border-radius: 30px; transition: .2s; }
+  .switch span::after { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px;
+                        background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px #0003; }
+  .switch input:checked + span { background: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(22px); }
+  .line { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+          background: var(--soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1; min-width: 120px; }
+  label.field select, label.field input { color: var(--ink); font-size: 16px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatch { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); padding: 0; }
+  .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .warn { color: var(--warn); }
+  .hidden { display: none !important; }
+  nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+        display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  nav .tabs { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; max-width: 560px; }
+  nav button { border: 0; border-radius: 0; background: none; padding: 8px 2px 10px; font-size: 12px; color: var(--muted);
+               display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; }
+  nav button span { font-size: 20px; }
+  nav button.active { color: var(--accent); font-weight: 650; }
+  #toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+           padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: .25s; pointer-events: none;
+           max-width: 90vw; z-index: 9; }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>PLZ Quran Lamp</h1>
+      <div class="status" id="status">Not connected</div>
+    </div>
+    <button class="primary" id="connectBtn">Connect</button>
+  </header>
+
+  <p class="card warn hidden" id="noBle">This browser cannot use Bluetooth. Open this page in <b>Chrome</b> on Android or on a PC.
+    (iPhone browsers do not support Bluetooth web apps.)</p>
+
+  <!-- ============ QURAN ============ -->
+  <section data-tab="quran">
+    <div class="card">
+      <div class="now">
+        <div class="title" id="posTitle">—</div>
+        <div class="sub" id="posSub">Connect to see what is playing</div>
+      </div>
+      <div class="row">
+        <button class="big" data-cmd="03" title="Previous surah">⏮</button>
+        <button class="big" data-cmd="05" title="Previous verse">◀</button>
+        <button class="primary grow big" data-cmd="02" id="playBtn">▶ Play</button>
+        <button class="big" data-cmd="06" title="Next verse">▶</button>
+        <button class="big" data-cmd="04" title="Next surah">⏭</button>
+      </div>
+      <label class="field" style="margin-top:14px">Volume <b id="volVal">–</b>
+        <input type="range" id="volume" min="0" max="30">
+      </label>
+    </div>
+
+    <div class="card">
+      <h2>Go to surah and verse</h2>
+      <div class="row">
+        <label class="field" style="flex:3">Surah <select id="surah"></select></label>
+        <label class="field" style="flex:1">Verse <input type="number" id="verse" min="1" value="1" inputmode="numeric"></label>
+      </div>
+      <button class="primary" id="goVerse" style="width:100%;margin-top:10px">Play from here</button>
+    </div>
+
+    <div class="card">
+      <h2>Buttons</h2>
+      <div class="keys">
+        <button data-cmd="07">Mode</button>
+        <button data-cmd="0A">MP3 (card)</button>
+        <button data-cmd="09">Word by word</button>
+        <button data-cmd="0C">Bluetooth speaker</button>
+        <button data-cmd="1A">Repeat</button>
+        <button data-cmd="1F">Light on/off</button>
+        <button data-go="reciters">Reciters</button>
+        <button data-go="books">Books</button>
+        <button data-go="trans">Translation</button>
+        <button data-cmd="30" data-arg="0">Voice: Arabic</button>
+        <button data-cmd="30" data-arg="1">Voice: English</button>
+        <button data-cmd="01" class="warn">Power on/off</button>
+      </div>
+      <p class="note">Same buttons as the original app's keypad.</p>
+    </div>
+  </section>
+
+  <!-- ============ LISTS ============ -->
+  <section data-tab="lists" class="hidden">
+    <div class="card" id="reciters">
+      <h2>Reciters</h2>
+      <div class="list" id="readerList"><p class="note">Connect to load the reciters on your lamp.</p></div>
+    </div>
+    <div class="card" id="trans">
+      <h2>Translation (played after each verse)</h2>
+      <div class="list" id="transList"><p class="note">Connect to load the translations.</p></div>
+    </div>
+    <div class="card" id="books">
+      <h2>Books: Hadith, Ruqyah, Duaa…</h2>
+      <div class="list" id="bookList"><p class="note">Connect to load the books.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ AZAN ============ -->
+  <section data-tab="azan" class="hidden">
+    <div class="card">
+      <h2>Prayer times</h2>
+      <div class="line">
+        <div><strong>Azan</strong><div class="status">Plays the azan at each prayer time</div></div>
+        <label class="switch"><input type="checkbox" id="master"><span></span></label>
+      </div>
+      <button class="primary" id="mosqueSync" style="width:100%;margin-bottom:6px">Copy my mosque's times (Mawaqit)</button>
+      <div class="status" id="mosqueName"></div>
+      <div id="prayers"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="primary grow" id="saveTimes">Save times to lamp</button>
+        <button id="resetTimes">Use lamp's own times</button>
+      </div>
+      <div class="warn hidden" id="dirtyNote" style="font-size:13px;margin-top:6px">You changed times. Press "Save times to lamp".</div>
+      <p class="note">Grey line under each prayer = the lamp's own calculation. A time can move up to 2 hours from it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Calculation</h2>
+      <div class="row">
+        <label class="field">Method
+          <select id="method">
+            <option value="1">Jafari</option><option value="2">Karachi</option><option value="3">ISNA (North America)</option>
+            <option value="4">Muslim World League</option><option value="5">Makkah (Umm al-Qura)</option>
+            <option value="6">Egypt</option><option value="7">Tehran</option>
+          </select>
+        </label>
+        <label class="field">Asr
+          <select id="asr"><option value="1">Standard (Shafi'i)</option><option value="2">Hanafi</option></select>
+        </label>
+      </div>
+      <div class="line" style="margin-top:12px">
+        <div><strong>Summer time</strong><div class="status">Adds one hour in summer</div></div>
+        <label class="switch"><input type="checkbox" id="summer"><span></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Place</h2>
+      <div class="row">
+        <label class="field">Latitude <input type="text" id="lat" inputmode="decimal" value="51.46"></label>
+        <label class="field">Longitude <input type="text" id="lon" inputmode="decimal" value="7.01"></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="field">Time zone (without summer time) <select id="tz"></select></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="gps">Use my GPS</button>
+        <button class="primary grow" id="savePlace">Save place</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIGHT ============ -->
+  <section data-tab="light" class="hidden">
+    <div class="card">
+      <h2>Light</h2>
+      <div class="row" style="margin-bottom:12px">
+        <button class="primary" data-cmd="1F">Light on / off</button>
+        <label class="field" style="flex:none;min-width:0">Own colour
+          <input type="color" id="rgb" value="#ffb35c" style="width:64px;height:44px;border:0;background:none;padding:0"></label>
+      </div>
+      <div class="swatches" id="swatches"></div>
+      <label class="field" style="margin-top:14px">Brightness <b id="brightVal">50</b>
+        <input type="range" id="bright" min="0" max="100" value="50">
+      </label>
+    </div>
+  </section>
+
+  <!-- ============ MORE ============ -->
+  <section data-tab="more" class="hidden">
+    <div class="card">
+      <h2>Sleep timer</h2>
+      <div class="row">
+        <button data-sleep="10">10 min</button><button data-sleep="30">30 min</button>
+        <button data-sleep="60">60 min</button><button data-sleep="90">90 min</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="field">Other (minutes) <input type="number" id="sleepMin" min="1" max="1440" inputmode="numeric"></label>
+        <button id="sleepGo" style="align-self:flex-end">Start</button>
+      </div>
+      <div class="status" id="sleepLeft"></div>
+    </div>
+
+    <div class="card">
+      <h2>Switch off at a time</h2>
+      <div class="row">
+        <input type="time" id="offAt" value="23:00">
+        <label class="row" style="font-size:14px"><input type="checkbox" id="offDaily" checked> every day</label>
+        <button class="primary" id="offGo">Save</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Lamp</h2>
+      <div class="row">
+        <button id="syncClock">Set lamp clock to now</button>
+        <button id="reload">Reload from lamp</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="warn" id="factory">Factory reset azan settings</button>
+      </div>
+      <p class="note" id="model"></p>
+    </div>
+  </section>
+</main>
+
+<nav><div class="tabs">
+  <button data-nav="quran" class="active"><span>📖</span>Quran</button>
+  <button data-nav="lists"><span>🎙️</span>Reciters</button>
+  <button data-nav="azan"><span>🕌</span>Azan</button>
+  <button data-nav="light"><span>💡</span>Light</button>
+  <button data-nav="more"><span>⚙️</span>More</button>
+</div></nav>
+<div id="toast"></div>
+
+<script>
+// ===== Protocol (see PROTOCOL.md / FEATURES.md): EA cmd args.. 00 AE, replies EB cmd ..
+const SERVICE = "0000ae00-0000-1000-8000-00805f9b34fb";
+const WRITE_CH = "0000ae01-0000-1000-8000-00805f9b34fb";
+const NOTIFY_CH = "0000ae02-0000-1000-8000-00805f9b34fb";
+
+const READERS = { 2: "Muhammad Siddiq al-Minshawi (with children)", 3: "Saud ash-Shuraim", 4: "al-Tablawi",
+  5: "Abu Bakr ash-Shatri", 6: "Abdullah Matrood", 7: "Maher al-Muaiqly", 8: "Abdullah Basfar", 9: "Al-Minshawi",
+  10: "Abdul Basit", 11: "Muhammad Jibreel", 12: "Muhammad Ayyub", 13: "Al-Husary", 14: "Al-Ajmi", 15: "Al-Fasy",
+  16: "Al-Hudhaify", 17: "Saad al-Ghamdi", 18: "As-Sudais" };
+const TRANS = { 1: "English", 2: "Urdu", 3: "French", 4: "Bangla", 5: "Dari", 6: "Indonesian", 7: "Malay", 8: "Pashto",
+  9: "Farsi", 10: "Somali", 11: "Swahili", 12: "Turkish", 13: "Hindi", 14: "Tamil", 16: "Russian", 17: "Uzbek",
+  18: "Azerbaijani", 19: "Gujarati", 20: "Kazakh", 21: "Spanish", 22: "Bosnian", 23: "Malayalam", 24: "Persian",
+  25: "German", 26: "Kurdish" };
+const BOOKS = { 1: "Sahih al-Bukhari", 2: "Sahih Muslim", 3: "Ar-Ruqyah", 4: "Hisnul Muslim", 5: "Qaida Noorania",
+  6: "Salat method / Duaa", 7: "40 Hadith", 50: "Idris Abkar", 51: "Hazza al-Balushi", 52: "Mansour as-Salimi" };
+const PRAYERS = [
+  { name: "Fajr", ar: "الفجر" }, { name: "Sunrise", ar: "الشروق" }, { name: "Dhuhr", ar: "الظهر" },
+  { name: "Asr", ar: "العصر" }, { name: "Maghrib", ar: "المغرب" }, { name: "Isha", ar: "العشاء" },
+];
+const FAJR_SOUNDS = ["Fajr 1", "Fajr 2", "Al-Aqsa", "Egypt", "Famous azan", "Madina", "Makkah"];
+const SOUNDS = ["Al-Aqsa", "Egypt", "Famous azan", "Madina", "Makkah"];
+const COLORS = [
+  [1, "#ffd59a", "Warm white"], [2, "#f3f6ff", "Cool white"], [3, "#e53935", "Red"], [4, "#7cd67c", "Green"],
+  [5, "#1e3fae", "Blue"], [6, "#ffe14d", "Yellow"], [7, "#c7a0f0", "Purple"], [8, "#7cc8ff", "Light blue"],
+  [9, "#c99a14", "Dark yellow"], [10, "#ff8a1f", "Orange"],
+  [11, "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)", "Colour cycle"],
+];
+const VERSES = [7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,
+  34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,
+  28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6];
+const SURAHS = "Al-Fatiha,Al-Baqarah,Al Imran,An-Nisa,Al-Ma'idah,Al-An'am,Al-A'raf,Al-Anfal,At-Tawbah,Yunus,Hud,Yusuf,Ar-Ra'd,Ibrahim,Al-Hijr,An-Nahl,Al-Isra,Al-Kahf,Maryam,Ta-Ha,Al-Anbiya,Al-Hajj,Al-Mu'minun,An-Nur,Al-Furqan,Ash-Shu'ara,An-Naml,Al-Qasas,Al-Ankabut,Ar-Rum,Luqman,As-Sajdah,Al-Ahzab,Saba,Fatir,Ya-Sin,As-Saffat,Sad,Az-Zumar,Ghafir,Fussilat,Ash-Shura,Az-Zukhruf,Ad-Dukhan,Al-Jathiyah,Al-Ahqaf,Muhammad,Al-Fath,Al-Hujurat,Qaf,Adh-Dhariyat,At-Tur,An-Najm,Al-Qamar,Ar-Rahman,Al-Waqi'ah,Al-Hadid,Al-Mujadilah,Al-Hashr,Al-Mumtahanah,As-Saff,Al-Jumu'ah,Al-Munafiqun,At-Taghabun,At-Talaq,At-Tahrim,Al-Mulk,Al-Qalam,Al-Haqqah,Al-Ma'arij,Nuh,Al-Jinn,Al-Muzzammil,Al-Muddaththir,Al-Qiyamah,Al-Insan,Al-Mursalat,An-Naba,An-Nazi'at,Abasa,At-Takwir,Al-Infitar,Al-Mutaffifin,Al-Inshiqaq,Al-Buruj,At-Tariq,Al-A'la,Al-Ghashiyah,Al-Fajr,Al-Balad,Ash-Shams,Al-Layl,Ad-Duha,Ash-Sharh,At-Tin,Al-Alaq,Al-Qadr,Al-Bayyinah,Az-Zalzalah,Al-Adiyat,Al-Qari'ah,At-Takathur,Al-Asr,Al-Humazah,Al-Fil,Quraysh,Al-Ma'un,Al-Kawthar,Al-Kafirun,An-Nasr,Al-Masad,Al-Ikhlas,Al-Falaq,An-Nas".split(",");
+
+const $ = (id) => document.getElementById(id);
+const S = {   // what we know about the lamp
+  fmt: 1, now: [], calc: [], mask: 0, master: false, sounds: [],
+  readers: [], trans: [], books: [], names: {}, reader: null, tran: null, book: null,
+  surah: null, verse: null, playing: null, volume: null,
+};
+let writeChar = null, device = null, waiters = [], queue = Promise.resolve(), dirty = false;
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+// ===== Bluetooth link =====
+const frame = (cmd, args = []) => new Uint8Array([0xEA, cmd, ...args.map((a) => a & 0xFF), 0x00, 0xAE]);
+
+function onNotify(ev) {
+  const v = ev.target.value;
+  const d = new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength));
+  if (d.length < 3) return;
+  handlePush(d);
+  const i = waiters.findIndex((w) => w.cmd === d[1]);
+  if (i >= 0) {
+    const w = waiters[i];
+    if (w.collect) { w.parts.push(d); if (!w.collect(w.parts)) return; }
+    waiters.splice(i, 1); clearTimeout(w.timer); w.resolve(w.collect ? w.parts : d);
+  }
+}
+
+// One command at a time. Resolves with the lamp's reply (or null after a timeout).
+function send(cmd, args = [], opts = {}) {
+  const { reply = true, collect = null, timeout = 2500 } = opts;
+  queue = queue.catch(() => {}).then(async () => {
+    if (!writeChar) throw new Error("Not connected");
+    const answer = reply ? new Promise((resolve) => {
+      const w = { cmd, resolve, collect, parts: [],
+        timer: setTimeout(() => { waiters = waiters.filter((x) => x !== w); resolve(collect ? w.parts : null); }, timeout) };
+      waiters.push(w);
+    }) : null;
+    await writeChar.writeValueWithoutResponse(frame(cmd, args));
+    if (!reply) { await new Promise((ok) => setTimeout(ok, 150)); return null; }
+    return answer;
+  });
+  return queue;
+}
+
+async function sendOk(cmd, args, what) {
+  const r = await send(cmd, args);
+  if (r && r[2] === 1) { toast(what + " ✓"); return true; }
+  toast(what + (r ? " failed" : ": no answer")); return false;
+}
+
+// The lamp also sends these by itself (keys on the lamp or remote).
+function handlePush(d) {
+  const c = d[1];
+  if ([0x13, 0x03, 0x04].includes(c) && d.length >= 6) { S.surah = d[2]; S.verse = (d[3] << 8) | d[4]; S.playing = true; }
+  else if (c === 0x02) S.playing = d[2] === 1 || d[2] === 3;
+  else if (c === 0x60) S.playing = d[2] === 3 ? true : d[2] === 2 ? false : d[2] === 0 ? "off" : S.playing;
+  else if (c === 0x16 || c === 0x37) S.reader = d[2];
+  else if (c === 0x08 || c === 0x17 || c === 0x38) S.tran = d[2];
+  else if (c === 0x1B || c === 0x40) S.book = d[2];
+  else if (c === 0x41) S.volume = d[2];
+  else return;
+  renderNow(); renderLists();
+}
+
+async function connect() {
+  try {
+    device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "XDT_" }, { services: [SERVICE] }],
+                                                       optionalServices: [SERVICE] });
+    $("status").textContent = "Connecting…";
+    device.addEventListener("gattserverdisconnected", onDisconnect);
+    const server = await device.gatt.connect();
+    const svc = await server.getPrimaryService(SERVICE);
+    writeChar = await svc.getCharacteristic(WRITE_CH);
+    const notify = await svc.getCharacteristic(NOTIFY_CH);
+    notify.addEventListener("characteristicvaluechanged", onNotify);
+    await notify.startNotifications();
+    $("status").textContent = "Connected to " + (device.name || "lamp").replace("XDT_", "");
+    $("connectBtn").textContent = "Disconnect";
+    setEnabled(true);
+    await loadAll();
+  } catch (e) {
+    if (e.name !== "NotFoundError") toast("Could not connect: " + e.message);
+    $("status").textContent = "Not connected. Close the Koran Player app on your phone, then try again.";
+  }
+}
+
+function onDisconnect() {
+  writeChar = null; waiters = [];
+  $("status").textContent = "Disconnected";
+  $("connectBtn").textContent = "Connect";
+  setEnabled(false);
+}
+
+function setEnabled(on) {
+  document.querySelectorAll("main button:not(#connectBtn), main select, main input").forEach((el) => (el.disabled = !on));
+}
+
+// ===== Loading =====
+const pairs = (d) => Array.from({ length: 6 }, (_, i) => d[3 + i * 2] * 60 + d[4 + i * 2]);
+
+// Id lists (0x72 readers, 0x75 translations, 0x79 books): up to 16 ids per packet, FF ends,
+// byte 18 != 0 means another packet follows.
+function listDone(parts) {
+  const last = parts[parts.length - 1];
+  for (let i = 2; i < 18 && i < last.length; i++) if (last[i] === 0xFF) return true;
+  return !(last.length > 18 && last[18] !== 0);
+}
+function listIds(parts) {
+  const ids = [];
+  for (const p of parts) for (let i = 2; i < 18 && i < p.length; i++) { if (p[i] === 0xFF) return ids; ids.push(p[i]); }
+  return ids;
+}
+const decodeName = (d) => new TextDecoder().decode(d.slice(2, d.length - 2)).replace(/\0/g, "").trim();
+
+async function loadAll() {
+  const model = await send(0x00);
+  if (model) $("model").textContent = "Model: " + new TextDecoder().decode(model.slice(2, 10)).trim();
+  await syncClock(true);
+  const v = await send(0x41); if (v) S.volume = v[2];
+  const st = await send(0x60); if (st) handlePush(st);
+  await loadLists();
+  await loadAzan();
+  renderNow(); renderLists();
+}
+
+async function loadLists() {
+  await send(0x70); await send(0x71);
+  S.readers = listIds(await send(0x72, [], { collect: listDone, timeout: 3000 }));
+  S.trans = listIds(await send(0x75, [], { collect: listDone, timeout: 3000 }));
+  await send(0x78);
+  S.books = listIds(await send(0x79, [], { collect: listDone, timeout: 3000 })).filter((id) => id !== 15);
+  for (const [ids, table, cmd, key] of [[S.readers, READERS, 0x76, "r"], [S.trans, TRANS, 0x77, "t"], [S.books, BOOKS, 0x80, "b"]]) {
+    for (const id of ids) {
+      if (table[id] || S.names[key + id]) continue;
+      const r = await send(cmd, [id]);
+      S.names[key + id] = r ? decodeName(r) || "#" + id : "#" + id;
+    }
+  }
+  const r = await send(0x16); if (r) S.reader = r[2];
+  const t = await send(0x17); if (t) S.tran = t[2];
+  const b = await send(0x40); if (b) S.book = b[2];
+}
+
+async function loadAzan() {
+  const calc = await send(0x93), now = await send(0x91);
+  if (calc) S.calc = pairs(calc);
+  if (now) { S.fmt = now[2]; S.now = pairs(now); }
+  const m = await send(0x95); S.master = !!(m && m[2]);
+  const mask = await send(0x99); S.mask = mask ? mask[2] : 0;
+  for (let p = 1; p <= 6; p++) { const s = await send(0x9F, [p]); S.sounds[p - 1] = s ? s[3] : 1; }
+  const me = await send(0x9A); if (me) $("method").value = me[2] || 4;
+  const a = await send(0x9B); if (a) $("asr").value = a[2] || 1;
+  const su = await send(0xA7); if (su) $("summer").checked = !!su[2];
+  dirty = false; renderAzan();
+}
+
+// ===== Rendering =====
+function renderNow() {
+  if (S.surah != null) {
+    $("posTitle").textContent = `${S.surah + 1}. ${SURAHS[S.surah] || ""}`;
+    $("posSub").textContent = `Verse ${S.verse + 1} of ${VERSES[S.surah] || "?"}`;
+  } else if (writeChar) { $("posTitle").textContent = "Quran"; $("posSub").textContent = "Pick a surah below or press play"; }
+  if (S.playing === "off") $("posSub").textContent = "Lamp is off (standby). Press Power on/off.";
+  $("playBtn").textContent = S.playing === true ? "⏸ Pause" : "▶ Play";
+  if (S.volume != null) { $("volume").value = S.volume; $("volVal").textContent = S.volume; }
+}
+
+function nameOf(kind, id) {
+  const table = { r: READERS, t: TRANS, b: BOOKS }[kind];
+  return table[id] || S.names[kind + id] || "#" + id;
+}
+
+function renderList(box, ids, kind, cur, cmd) {
+  if (!ids.length) return;
+  box.innerHTML = "";
+  ids.forEach((id) => {
+    const b = document.createElement("button");
+    b.className = "item" + (id === cur ? " cur" : "");
+    b.innerHTML = `<span>${nameOf(kind, id)}</span><small>${id === cur ? "playing" : ""}</small>`;
+    b.onclick = async () => { await send(cmd, [id], { reply: false }); toast(nameOf(kind, id)); };
+    box.appendChild(b);
+  });
+}
+
+function renderLists() {
+  renderList($("readerList"), S.readers, "r", S.reader, 0x37);
+  renderList($("transList"), S.trans, "t", S.tran, 0x38);
+  renderList($("bookList"), S.books, "b", S.book, 0x1B);
+}
+
+const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+
+function renderAzan() {
+  $("master").checked = S.master;
+  const box = $("prayers");
+  box.innerHTML = "";
+  PRAYERS.forEach((p, i) => {
+    const now = S.now[i] ?? 0, calc = S.calc[i] ?? 0, diff = now - calc;
+    const on = !!(S.mask & (1 << i));
+    const list = i === 0 ? FAJR_SOUNDS : SOUNDS;
+    const row = document.createElement("div");
+    row.className = "prayer";
+    row.innerHTML = `
+      <div><div class="pname">${p.name}<small>${p.ar}</small></div>
+        <div class="calc ${diff ? "off" : ""}">lamp's own ${hhmm(calc)}${diff ? ` · moved ${diff > 0 ? "+" : ""}${diff} min` : ""}</div></div>
+      <div class="ptime">${hhmm(now)}</div>
+      <div class="controls">
+        <button data-act="shift" data-d="-5">−5</button><button data-act="shift" data-d="-1">−1</button>
+        <button data-act="shift" data-d="1">+1</button><button data-act="shift" data-d="5">+5</button>
+        ${i === 1 ? "" : `<select data-act="sound">${list.map((s, k) =>
+            `<option value="${k + 1}" ${S.sounds[i] === k + 1 ? "selected" : ""}>${s}</option>`).join("")}</select>
+        <button data-act="preview" title="Listen">🔊</button>
+        <label class="switch" title="Azan for this prayer"><input type="checkbox" data-act="toggle" ${on ? "checked" : ""} ${S.master ? "" : "disabled"}><span></span></label>`}
+      </div>`;
+    row.querySelectorAll("[data-act]").forEach((el) => {
+      const act = el.dataset.act;
+      if (act === "shift") el.onclick = () => shift(i, +el.dataset.d);
+      if (act === "toggle") el.onchange = () => togglePrayer(i, el.checked);
+      if (act === "sound") el.onchange = () => setSound(i, +el.value);
+      if (act === "preview") el.onclick = () => preview(i, row.querySelector("select").value);
+    });
+    if (!writeChar) row.querySelectorAll("button,select,input").forEach((el) => (el.disabled = true));
+    box.appendChild(row);
+  });
+  $("dirtyNote").classList.toggle("hidden", !dirty);
+}
+
+// ===== Azan actions =====
+function shift(i, d) {
+  const next = S.now[i] + d;
+  if (Math.abs(next - S.calc[i]) > 120) { toast("Max 2 hours from the lamp's own time"); return; }
+  S.now[i] = (next + 1440) % 1440; dirty = true; renderAzan();
+}
+const timesArgs = (list) => [S.fmt, ...list.flatMap((m) => [Math.floor(m / 60), m % 60])];
+
+async function saveTimes() { if (await sendOk(0x92, timesArgs(S.now), "Times saved")) await loadAzan(); }
+async function resetTimes() { S.now = [...S.calc]; if (await sendOk(0x92, timesArgs(S.now), "Lamp's own times")) await loadAzan(); }
+
+async function togglePrayer(i, on) {
+  if (await sendOk(0x98, [i + 1, on ? 1 : 0], PRAYERS[i].name + (on ? " azan on" : " azan off")))
+    S.mask = on ? S.mask | (1 << i) : S.mask & ~(1 << i);
+  renderAzan();
+}
+async function setSound(i, sound) {
+  await send(0x9E, [i + 1, sound, 0], { reply: false }); await send(0xA0, [], { reply: false });
+  S.sounds[i] = sound; toast(PRAYERS[i].name + " sound saved");
+}
+let previewing = false;
+async function preview(i, sound) {
+  if (previewing) { await send(0xA0, [], { reply: false }); previewing = false; toast("Stopped"); return; }
+  await send(0x9E, [i + 1, +sound, 1], { reply: false }); previewing = true; toast("Playing sample. Press 🔊 again to stop.");
+}
+async function setMaster(on) {
+  if (await sendOk(0x94, [on ? 1 : 0], on ? "Azan on" : "Azan off")) S.master = on;
+  const mask = await send(0x99); if (mask) S.mask = mask[2];
+  renderAzan();
+}
+
+// Mosque times: times.json is refreshed from Mawaqit by the website's daily job.
+async function mosqueSync() {
+  try {
+    const data = await (await fetch("times.json?" + Date.now())).json();
+    let day = new Date();
+    const pick = (d) => data.calendar[d.getMonth()][String(d.getDate())].map((t) => { const [h, m] = t.split(":"); return +h * 60 + +m; });
+    let list = pick(day);
+    const nowMin = day.getHours() * 60 + day.getMinutes();
+    if (nowMin > list[5]) { day = new Date(day.getTime() + 864e5); list = pick(day); }   // after Isha: tomorrow
+    if (!S.calc.length) await loadAzan();
+    const far = list.findIndex((m, i) => Math.abs(m - S.calc[i]) > 120);
+    if (far >= 0) { toast(PRAYERS[far].name + " is more than 2 h from the lamp's time. Check Place."); return; }
+    S.now = list;
+    if (await sendOk(0x92, timesArgs(S.now), "Mosque times saved")) await loadAzan();
+    $("mosqueName").textContent = `${data.mosque} · ${day.toLocaleDateString()}`;
+  } catch (e) { toast("Could not read mosque times: " + e.message); }
+}
+
+// ===== Place / clock / misc =====
+const TZ_LABELS = ["UTC", ...Array.from({ length: 11 }, (_, i) => `UTC+${i + 1}`), "UTC±12",
+                   ...Array.from({ length: 11 }, (_, i) => `UTC-${11 - i}`)];
+const tzIndex = (h) => (h >= 0 ? h : 24 + h);
+
+async function syncClock(silent) {
+  const t = new Date();
+  await send(0x90, [t.getFullYear() >> 8, t.getFullYear() & 0xFF, t.getMonth() + 1, t.getDate(),
+                    t.getHours(), t.getMinutes(), t.getSeconds()], { reply: false });
+  if (silent !== true) toast("Clock set to " + t.toLocaleTimeString());
+}
+
+async function savePlace() {
+  const lat = parseFloat($("lat").value.replace(",", ".")), lon = parseFloat($("lon").value.replace(",", "."));
+  if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) { toast("Check latitude / longitude"); return; }
+  const L = Math.floor(Math.abs(lon) * 100), B = Math.floor(Math.abs(lat) * 100);
+  if (await sendOk(0x53, [+$("tz").value, lon >= 0 ? 1 : 0, L >> 8, L & 0xFF, lat >= 0 ? 1 : 0, B >> 8, B & 0xFF], "Place saved"))
+    await loadAzan();
+}
+
+function useGps() {
+  if (!navigator.geolocation) { toast("No GPS here"); return; }
+  navigator.geolocation.getCurrentPosition((pos) => {
+    $("lat").value = pos.coords.latitude.toFixed(2); $("lon").value = pos.coords.longitude.toFixed(2);
+    toast("Got your place. Press Save place.");
+  }, (e) => toast("GPS: " + e.message), { timeout: 15000 });
+}
+
+let sleepEnd = null;
+async function sleepTimer(min) {
+  if (!(min > 0)) { toast("Enter minutes"); return; }
+  if (await sendOk(0x31, [min >> 8, min & 0xFF], `Sleep in ${min} min`)) { sleepEnd = Date.now() + min * 60000; tickSleep(); }
+}
+function tickSleep() {
+  clearTimeout(tickSleep.t);
+  if (!sleepEnd) return;
+  const left = Math.max(0, Math.round((sleepEnd - Date.now()) / 60000));
+  $("sleepLeft").textContent = left ? `Turns off in about ${left} min` : "";
+  if (left) tickSleep.t = setTimeout(tickSleep, 30000); else sleepEnd = null;
+}
+
+// ===== Wiring =====
+if (!navigator.bluetooth) { $("noBle").classList.remove("hidden"); $("connectBtn").disabled = true; }
+$("surah").innerHTML = SURAHS.map((s, i) => `<option value="${i}">${i + 1}. ${s} (${VERSES[i]})</option>`).join("");
+$("surah").onchange = () => { $("verse").max = VERSES[+$("surah").value]; $("verse").value = 1; };
+$("tz").innerHTML = TZ_LABELS.map((l, i) => `<option value="${i}">${l}</option>`).join("");
+$("tz").value = tzIndex(Math.round(-new Date(new Date().getFullYear(), 0, 1).getTimezoneOffset() / 60));
+$("swatches").innerHTML = COLORS.map(([m, c, n]) =>
+  `<button class="swatch" data-mode="${m}" title="${n}" style="background:${c}"></button>`).join("");
+
+document.querySelectorAll("[data-cmd]").forEach((b) => (b.onclick = () => {
+  const args = b.dataset.arg != null ? [+b.dataset.arg] : [];
+  send(parseInt(b.dataset.cmd, 16), args, { reply: false });
+}));
+document.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { showTab("lists"); $(b.dataset.go).scrollIntoView(); }));
+document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => showTab(b.dataset.nav)));
+document.querySelectorAll("[data-sleep]").forEach((b) => (b.onclick = () => sleepTimer(+b.dataset.sleep)));
+function showTab(name) {
+  document.querySelectorAll("section[data-tab]").forEach((s) => s.classList.toggle("hidden", s.dataset.tab !== name));
+  document.querySelectorAll("[data-nav]").forEach((b) => b.classList.toggle("active", b.dataset.nav === name));
+  window.scrollTo(0, 0);
+}
+
+$("connectBtn").onclick = () => (writeChar && device ? device.gatt.disconnect() : connect());
+$("goVerse").onclick = async () => {
+  const s = +$("surah").value, v = Math.min(Math.max(1, +$("verse").value || 1), VERSES[s]) - 1;
+  const r = await send(0x15, [s, v >> 8, v & 0xFF]);
+  if (r && r[2] === 0) { S.surah = s; S.verse = v; S.playing = true; renderNow(); toast("Playing " + SURAHS[s]); }
+  else toast(r ? "Lamp refused (switch it on / MP3 mode)" : "No answer from lamp");
+};
+$("volume").oninput = (e) => ($("volVal").textContent = e.target.value);
+$("volume").onchange = (e) => sendOk(0x42, [+e.target.value], "Volume " + e.target.value);
+$("master").onchange = (e) => setMaster(e.target.checked);
+$("mosqueSync").onclick = mosqueSync;
+$("saveTimes").onclick = saveTimes;
+$("resetTimes").onclick = resetTimes;
+$("method").onchange = async (e) => { if (await sendOk(0x96, [+e.target.value], "Method saved")) loadAzan(); };
+$("asr").onchange = async (e) => { if (await sendOk(0x97, [+e.target.value], "Asr rule saved")) loadAzan(); };
+$("summer").onchange = async (e) => { if (await sendOk(0xA6, [e.target.checked ? 1 : 0], "Summer time saved")) loadAzan(); };
+$("gps").onclick = useGps;
+$("savePlace").onclick = savePlace;
+$("bright").oninput = (e) => ($("brightVal").textContent = e.target.value);
+$("bright").onchange = (e) => send(0x1E, [+e.target.value], { reply: false });
+$("rgb").oninput = (() => { let last = 0; return (e) => {
+  if (Date.now() - last < 120) return; last = Date.now();
+  const h = e.target.value;
+  send(0x33, [+$("bright").value, parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)], { reply: false });
+}; })();
+$("swatches").onclick = (e) => { const m = e.target.dataset && e.target.dataset.mode;
+  if (m) send(0x1D, [+$("bright").value, +m], { reply: false }); };
+$("sleepGo").onclick = () => sleepTimer(+$("sleepMin").value);
+$("offGo").onclick = () => {
+  const [h, m] = $("offAt").value.split(":").map(Number), min = h * 60 + m;
+  if (!min) { toast("Pick a time"); return; }
+  sendOk(0x3E, [min >> 8, min & 0xFF, $("offDaily").checked ? 1 : 0], "Switch-off time saved");
+};
+$("syncClock").onclick = () => syncClock();
+$("reload").onclick = loadAll;
+$("factory").onclick = async () => {
+  if (!confirm("Reset azan settings (method, summer time, volume…) to factory values?")) return;
+  const r = await send(0xA8); toast(r ? "Reset done" : "No answer"); await loadAll();
+};
+
+setEnabled(false);
+renderAzan();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
