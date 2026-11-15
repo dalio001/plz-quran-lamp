@@ -102,7 +102,8 @@
   <details class="card" id="howStart">
     <summary><b>How to start the lamp</b></summary>
     <ol class="note" style="padding-left:18px;margin-bottom:0">
-      <li>Switch on the <b>ON/OFF</b> switch on the back of the lamp.</li>
+      <li>Switch on the <b>ON/OFF</b> switch on the back of the lamp. Avoid switching it off there: the lamp then
+        forgets its place and azan settings (press "Copy my mosque's times" after it).</li>
       <li>Press the red <b>power</b> button on the remote.</li>
       <li>Close the Koran Player app, then press <b>Connect</b> here.</li>
       <li>For Quran, books and translations the lamp must be in <b>MP3 (card)</b> mode, not Bluetooth mode:
@@ -592,12 +593,23 @@ async function mosqueSync() {
     let list = pick(day);
     const nowMin = day.getHours() * 60 + day.getMinutes();
     if (nowMin > list[5]) { day = new Date(day.getTime() + 864e5); list = pick(day); }   // after Isha: tomorrow
-    if (!S.calc.length) await loadAzan();
+    // The lamp forgets its place after the back switch cuts power, so always send the mosque's place first.
+    if (data.latitude != null && data.longitude != null) {
+      $("lat").value = (+data.latitude).toFixed(2); $("lon").value = (+data.longitude).toFixed(2);
+      await savePlace(true);
+    }
+    await syncClock(true);
+    await loadAzan();
     const far = list.findIndex((m, i) => Math.abs(m - S.calc[i]) > 120);
     if (far >= 0) { toast(PRAYERS[far].name + " is more than 2 h from the lamp's time. Check Place."); return; }
     S.now = list;
-    if (await sendOk(0x92, timesArgs(S.now), "Mosque times saved")) await loadAzan();
-    $("mosqueName").textContent = `${data.mosque} · ${day.toLocaleDateString()}`;
+    if (!(await sendOk(0x92, timesArgs(S.now), "Mosque times saved"))) return;
+    // Azan on for the 5 prayers (not sunrise).
+    if (!S.master) await send(0x94, [1]);
+    for (const i of [0, 2, 3, 4, 5]) if (!(S.mask & (1 << i))) await send(0x98, [i + 1, 1]);
+    await loadAzan();
+    $("mosqueName").textContent = `${data.mosque} · ${day.toLocaleDateString()} · azan on`;
+    toast("Done: mosque times + azan on");
   } catch (e) { toast("Could not read mosque times: " + e.message); }
 }
 
@@ -613,12 +625,13 @@ async function syncClock(silent) {
   if (silent !== true) toast("Clock set to " + t.toLocaleTimeString());
 }
 
-async function savePlace() {
+async function savePlace(quiet) {
   const lat = parseFloat($("lat").value.replace(",", ".")), lon = parseFloat($("lon").value.replace(",", "."));
   if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) { toast("Check latitude / longitude"); return; }
   const L = Math.floor(Math.abs(lon) * 100), B = Math.floor(Math.abs(lat) * 100);
-  if (await sendOk(0x53, [+$("tz").value, lon >= 0 ? 1 : 0, L >> 8, L & 0xFF, lat >= 0 ? 1 : 0, B >> 8, B & 0xFF], "Place saved"))
-    await loadAzan();
+  const args = [+$("tz").value, lon >= 0 ? 1 : 0, L >> 8, L & 0xFF, lat >= 0 ? 1 : 0, B >> 8, B & 0xFF];
+  if (quiet === true) { await send(0x53, args); return; }
+  if (await sendOk(0x53, args, "Place saved")) await loadAzan();
 }
 
 function useGps() {
@@ -687,7 +700,7 @@ $("method").onchange = async (e) => { if (await sendOk(0x96, [+e.target.value], 
 $("asr").onchange = async (e) => { if (await sendOk(0x97, [+e.target.value], "Asr rule saved")) loadAzan(); };
 $("summer").onchange = async (e) => { if (await sendOk(0xA6, [e.target.checked ? 1 : 0], "Summer time saved")) loadAzan(); };
 $("gps").onclick = useGps;
-$("savePlace").onclick = savePlace;
+$("savePlace").onclick = () => savePlace();
 $("bright").oninput = (e) => ($("brightVal").textContent = e.target.value);
 $("bright").onchange = (e) => send(0x1E, [+e.target.value], { reply: false });
 $("rgb").oninput = (() => { let last = 0; return (e) => {
