@@ -3,6 +3,8 @@ Session history recorded newest first. Carries the reasoning behind decisions an
 - Roadmap: `docs/MASTER_PLAN.md`
 - Governance: `AGENTS.md`
 ---
+## 2026-11-16 — Lamp stays awake on the charger (verified overnight, azan on time); tip added to app.
+
 ## 2026-11-15 — MCP server for Claude (Pillar 5)
 Added `mcp/` (Python, mcp + bleak, 13 tools) and registered it in Claude Code. Not yet tested on the lamp.
 
