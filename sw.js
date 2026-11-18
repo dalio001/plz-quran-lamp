@@ -1,5 +1,5 @@
 // Keeps the app working offline: serve from cache, refresh the cache in the background.
-const CACHE = "plz-quran-lamp-v4";
+const CACHE = "plz-quran-lamp-v5";
 const FILES = ["./", "index.html", "manifest.json", "icon.svg", "icon-192.png", "icon-512.png", "times.json"];
 
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())));
